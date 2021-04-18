@@ -3,8 +3,91 @@ Copyright (C) 2018-2020 Robert Wimmer
 Copyright (C) 2019 fbourqui
 SPDX-License-Identifier: GPL-3.0-or-later
 -->
+DroidSolutions GmbH Fork of githubixx/ansible-role-wireguard
+======================
+## Changes:
+* use "networks" name to group hosts besides the normal ansible inventory to create a combination of mesh and non-mesh networks
+* add a Graphviz generator to visualize your network
 
-ansible-role-wireguard
+## Variables
+### usually group_vars
+```yaml
+# Directory to store WireGuard configuration on the remote hosts
+wireguard_remote_directory: "/etc/wireguard"              # On Linux
+# wireguard_remote_directory: "/opt/local/etc/wireguard"  # On MacOS
+
+# The default port WireGuard will listen if not specified otherwise.
+wireguard_port: "51820"
+
+# The default interface name that WireGuard should use if not specified otherwise.
+wireguard_interface: "wg0"
+
+# The default owner of the wg.conf file
+wireguard_conf_owner: root
+
+# The default group of the wg.conf file
+wireguard_conf_group: "{{ 'root' if not ansible_os_family == 'Darwin' else 'wheel' }}"
+
+# The default mode of the wg.conf file
+wireguard_conf_mode: 0600
+
+```
+
+### usually host variables
+```yaml
+wireguard_address: "10.8.0.101/24"
+
+wireguard_private_key: "" # put this inside vault for each host!
+
+# a named group this host belongs to
+wireguard_network_group: "workers" 
+# array of network groups this user wants to connect to (a point2point connection will be created to each host of this group!)
+wireguard_peer_network_groups: [] 
+# array of hosts (from ansible inventory) you want to create a connection to
+wireguard_peer_network_hosts: []
+
+wireguard_allowed_ips: ""
+wireguard_endpoint: "host1.domain.tld" # can be empty --> results in peer without endpoint 
+wireguard_persistent_keepalive: "30"
+wireguard_dns: "1.1.1.1"
+wireguard_fwmark: "1234"
+wireguard_mtu: "1492"
+wireguard_table: "5000"
+wireguard_preup:
+  - ...
+wireguard_predown:
+  - ...
+wireguard_postup:
+  - ...
+wireguard_postdown:
+  - ...
+wireguard_save_config: "true"
+wireguard_unmanaged_peers:
+  client.example.com:
+    public_key: 5zsSBeZZ8P9pQaaJvY9RbELQulcwC5VBXaZ93egzOlI=
+    # preshared_key: ... e.g. from ansible-vault?
+    allowed_ips: 10.0.0.3/32
+    endpoint: client.example.com:51820
+    persistent_keepalive: 0
+```
+
+`wireguard_(preup|predown|postup|postdown)` are specified as lists. Here are two examples:
+
+```yaml
+wireguard_postup:
+  - iptables -t nat -A POSTROUTING -o ens12 -j MASQUERADE
+  - iptables -A FORWARD -i %i -j ACCEPT
+  - iptables -A FORWARD -o %i -j ACCEPT
+```
+
+```yaml
+wireguard_preup:
+  - echo 1 > /proc/sys/net/ipv4/ip_forward
+  - ufw allow 51820/udp
+```
+
+
+README before: ansible-role-wireguard
 ======================
 
 This Ansible role is used in my blog series [Kubernetes the not so hard way with Ansible](https://www.tauceti.blog/post/kubernetes-the-not-so-hard-way-with-ansible-wireguard/) but can be used standalone of course. The latest release is [available via Ansible Galaxy](https://galaxy.ansible.com/githubixx/ansible_role_wireguard).  I use WireGuard and this Ansible role to setup a fully meshed VPN between all nodes of my little Kubernetes cluster. This VPN also includes two clients so that I can communicate securely with the Kubernetes API server. Also my Postfix mailserver running as K8s DaemonSet forwards mails to my internal Postfix through WireGuard VPN.

@@ -44,9 +44,38 @@ PostDown = {{ wg_postdown }}
 {% if wireguard_save_config is defined %}
 SaveConfig = true
 {% endif %}
-{% for host in ansible_play_hosts %}
-{%   if host != inventory_hostname %}
 
+{####### generate peers list ##############}
+{% set peers = namespace(list=[]) -%}
+{% for host in groups['all'] %}
+{%   if host != inventory_hostname %}
+{#     check if our network_group in in network groups the oposite host wants a connection to #}
+{%     if hostvars[host].wireguard_peer_network_groups is defined 
+          and hostvars[host].wireguard_peer_network_groups 
+          and hostvars[inventory_hostname].wireguard_network_group is defined
+          and hostvars[inventory_hostname].wireguard_network_group in hostvars[host].wireguard_peer_network_groups %} 
+{#        yep, the other host wants a connection with the current inventory_hostname, add it to list of peers #}
+{%        set peers.list = peers.list + [host] %}
+{%     endif %}
+{#     check if the other host in our network_groups list, we want to connect to #}
+{%     if hostvars[host].wireguard_network_group is defined 
+          and hostvars[host].wireguard_network_group 
+          and hostvars[inventory_hostname].wireguard_peer_network_groups is defined
+          and hostvars[host].wireguard_network_group in hostvars[inventory_hostname].wireguard_peer_network_groups 
+          and host not in peers.list %}
+{%        set peers.list = peers.list + [host] %}
+{%     endif %}
+{#     check if the other host in our network_host list, we want to connect to #}
+{%     if hostvars[inventory_hostname].wireguard_peer_network_hosts is defined 
+          and host in hostvars[inventory_hostname].wireguard_peer_network_hosts 
+          and host not in peers.list %}
+{%        set peers.list = peers.list + [host] %}
+{%     endif %}
+{%   endif %}
+{% endfor %}
+
+{% for host in peers.list %}
+{%   if host != inventory_hostname %}
 [Peer]
 # {{ host }}
 PublicKey = {{hostvars[host].wireguard__fact_public_key}}

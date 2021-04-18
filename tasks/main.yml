@@ -101,6 +101,12 @@
   tags:
     - wg-config
 
+- name: Print the gateway for each host when defined
+  ansible.builtin.debug:
+    msg: System {{ inventory_hostname }} has public_key {{ wireguard__fact_public_key }}
+  tags:
+    - wg-config
+
 # Configuration [[[1
 - name: Create WireGuard configuration directory
   file:
