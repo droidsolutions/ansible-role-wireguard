@@ -139,6 +139,13 @@
 - name: Start and enable WireGuard service
   service:
     name: "wg-quick@{{ wireguard_interface }}"
+    state: restarted
+    enabled: yes
+#  when: not ansible_os_family == 'Darwin'
+
+- name: Start and enable WireGuard service
+  service:
+    name: "wg-quick@{{ wireguard_interface }}"
     state: started
     enabled: yes
   when: not ansible_os_family == 'Darwin'
