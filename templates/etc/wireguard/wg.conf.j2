@@ -75,7 +75,7 @@ SaveConfig = true
 {% endfor %}
 
 {% for host in peers.list %}
-{%   if host != inventory_hostname %}
+{%   if host != inventory_hostname and (hostvars[host].wireguard_allowed_ips is defined or hostvars[host].wireguard_address is defined) %}
 [Peer]
 # {{ host }}
 PublicKey = {{hostvars[host].wireguard__fact_public_key}}
